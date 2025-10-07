@@ -1,0 +1,130 @@
+#define MINI 500
+#define MAX_SPEED 255  // Maximum motor speed
+#define MIN_SPEED 100  // Minimum motor speed (to slow down when turning)
+#define in1 10  // Motor A Input 1 DRV8833
+#define in2 9  // Motor A Input 2 DRV8833
+#define in3 6   // Motor B Input 1 DRV8833
+#define in4 5   // Motor B Input 2 DRV8833
+#define L_S A2  // IR sensor Left
+#define R_S A3  // IR sensor Right
+#define M_L A0  // Middle Left IR sensor
+#define M_R A1  // Middle Right IR sensor
+
+// PID control variables
+float Kp = 1.5;  // Proportional gain
+int error = 0;
+int lastError = 0;
+int motorSpeed = MAX_SPEED;
+
+void setup() {
+    pinMode(in1, OUTPUT);
+    pinMode(in2, OUTPUT);
+    pinMode(in3, OUTPUT);
+    pinMode(in4, OUTPUT);
+}
+
+void loop() {
+    int leftSensor = analogRead(L_S);
+    int rightSensor = analogRead(R_S);
+    int midLeftSensor = analogRead(M_L);
+    int midRightSensor = analogRead(M_R);
+
+    motorSpeed = determineSpeed(leftSensor, rightSensor, midLeftSensor, midRightSensor);
+
+    // Calculate the error for PID control
+    error = (leftSensor - rightSensor) + (midLeftSensor - midRightSensor);
+    int pidCorrection = Kp * error;
+
+    // **Line following with smart adjustment**
+    if (leftSensor < MINI && rightSensor < MINI && (midLeftSensor > MINI || midRightSensor > MINI)) {
+        forward(motorSpeed + pidCorrection);
+    } 
+    // If the right sensor detects black, turn right
+    else if (rightSensor < MINI && leftSensor > MINI) {
+        turnRight(motorSpeed);
+    } 
+    // If the left sensor detects black, turn left
+    else if (leftSensor < MINI && rightSensor > MINI) {
+        turnLeft(motorSpeed);
+    } 
+    // If both middle sensors detect black (off-center), stop
+    else if (midLeftSensor < MINI && midRightSensor < MINI) {
+        stop();
+        // Attempt to re-enter the line
+        reEnterLine(leftSensor, rightSensor);
+    } 
+    // If all sensors detect black, stop to prevent overcompensation
+    else if (leftSensor < MINI && rightSensor < MINI && midLeftSensor < MINI && midRightSensor < MINI) {
+        stop();
+    }
+    // Ensure forward movement when aligned with the line
+    else if (leftSensor > MINI && rightSensor > MINI && (midLeftSensor < MINI || midRightSensor < MINI)) {
+        forward(motorSpeed + pidCorrection);
+    }
+    else {
+        stop();
+    }
+
+    // Store last error for the next loop
+    lastError = error;
+}
+
+int determineSpeed(int leftSensor, int rightSensor, int midLeftSensor, int midRightSensor) {
+    // Base speed is maximum if the robot is centered
+    int speed = MAX_SPEED;
+
+    // Adjust speed if it's off-center or turning
+    if (leftSensor < MINI && rightSensor > MINI) {
+        speed = MIN_SPEED; // Slow down when turning left
+    } else if (rightSensor < MINI && leftSensor > MINI) {
+        speed = MIN_SPEED; // Slow down when turning right
+    } else if (midLeftSensor < MINI && midRightSensor < MINI) {
+        speed = MIN_SPEED; // Slow down if both middle sensors are off-line (center deviation)
+    }
+
+    return speed;
+}
+
+void forward(int speed) {
+    analogWrite(in1, speed);  // Control speed of motor A
+    analogWrite(in2, 0);
+    analogWrite(in3, speed);  // Control speed of motor B
+    analogWrite(in4, 0);
+}
+
+void turnRight(int speed) {
+    analogWrite(in1, 0);
+    analogWrite(in2, 0);
+    analogWrite(in3, speed);  // Motor B turns right
+    analogWrite(in4, 0);
+}
+
+void turnLeft(int speed) {
+    analogWrite(in1, speed);  // Motor A turns left
+    analogWrite(in2, 0);
+    analogWrite(in3, 0);
+    analogWrite(in4, 0);
+}
+
+void stop() {
+    analogWrite(in1, 0);
+    analogWrite(in2, 0);
+    analogWrite(in3, 0);
+    analogWrite(in4, 0);
+}
+
+// Line re-entry logic based on sensor data
+void reEnterLine(int leftSensor, int rightSensor) {
+    // If left sensor detects the line (less than MINI value), turn right to re-enter the line
+    if (leftSensor < MINI) {
+        turnRight(motorSpeed);
+    } 
+    // If right sensor detects the line (less than MINI value), turn left to re-enter the line
+    else if (rightSensor < MINI) {
+        turnLeft(motorSpeed);
+    }
+    // If no sensor detects the line, stop and wait (could add other strategies here)
+    else {
+        stop();
+    }
+}
