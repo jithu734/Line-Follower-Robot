@@ -62,7 +62,7 @@ The configured schedule is saved to **internal Flash via IAP**, so it survives a
 # 🖼 Block Diagram
 
 <p align="center">
-    <img src="images/rtc-scheduler-block-diagram.png" alt="RTC Scheduler Block Diagram" width="900">
+    <img src="rtc-scheduler-block-diagram.png" alt="RTC Scheduler Block Diagram" width="900">
 </p>
 
 <br>
