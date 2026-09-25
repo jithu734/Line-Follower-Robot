@@ -1,386 +1,827 @@
+# ⏰ Menu-Driven RTC Configuration and Scheduled Device Control System
 
-# ⏰ Menu-Driven RTC Configuration & Device Scheduler
+![Platform](https://img.shields.io/badge/Platform-LPC2148%20(ARM7)-blue)
+![Language](https://img.shields.io/badge/Language-Embedded%20C-orange)
+![IDE](https://img.shields.io/badge/IDE-Keil%20µVision-green)
+![Programmer](https://img.shields.io/badge/Programmer-Flash%20Magic-lightgrey)
+![Status](https://img.shields.io/badge/Status-Educational%20Project-brightgreen)
+
+An embedded automation project built on the **NXP LPC2148 (ARM7 TDMI-S)** microcontroller.
+
+The system shows the **real-time date and time** on a 16×2 LCD. You can **set the clock** and a **daily ON/OFF schedule** using a 4×4 keypad menu. The system then **switches a device automatically** (an LED stands in for the device) according to your schedule.
+
+---
+
+## 🚀 Project at a Glance
+
+| | |
+|---|---|
+| **What it does** | Shows clock → lets you configure it → controls a device by schedule |
+| **Brain** | LPC2148 (ARM7, 60 MHz) with on-chip RTC |
+| **Input** | 4×4 keypad + one configuration push-button (EINT0) |
+| **Output** | 16×2 LCD + LED (device) |
+| **Language / Tool** | Embedded C · Keil µVision · Flash Magic |
+| **Source file** | `Menu-Driven-RTC-Scheduled-Device-Control.c` (single file, all drivers included) |
+
+---
+
+## 📑 Table of Contents
+
+- [Aim](#-aim)
+- [Objectives](#-objectives)
+- [Features](#-features)
+- [Block Diagram](#-block-diagram)
+- [Hardware Requirements](#-hardware-requirements)
+- [Software Requirements](#-software-requirements)
+- [Pin Mapping](#-pin-mapping)
+- [Circuit Connections](#-circuit-connections)
+- [Getting Started](#-getting-started)
+- [Firmware Architecture](#-firmware-architecture)
+- [Project Workflow](#-project-workflow)
+- [What You See on the LCD](#-what-you-see-on-the-lcd)
+- [LCD Output Gallery](#-lcd-output-gallery)
+- [Menu System](#-menu-system)
+- [Keypad Guide](#-keypad-guide)
+- [Schedule Logic](#-schedule-logic)
+- [Input Validation](#-input-validation)
+- [Testing Checklist](#-testing-checklist)
+- [Troubleshooting](#-troubleshooting)
+- [Project Structure](#-project-structure)
+- [Source Code Overview](#-source-code-overview)
+- [Technical Specifications](#-technical-specifications)
+- [Known Limitations](#-known-limitations)
+- [Future Enhancements](#-future-enhancements)
+- [License](#-license)
+- [Acknowledgements](#-acknowledgements)
+
+---
+
+## 🎯 Aim
+
+To develop a **menu-driven RTC configuration and scheduled device control system** using the LPC2148 microcontroller.
+
+The system:
+- Displays the current date and time on an LCD
+- Lets the user configure RTC settings and device ON/OFF times through keypad-operated menus
+- Automatically switches the device ON and OFF according to the user-defined daily schedule
+
+---
+
+## 📋 Objectives
+
+1. Display RTC information (date, time, and day of week) on a 16×2 LCD.
+2. Allow users to modify RTC settings (Hour, Minute, Day, Date, Month, Year) using a 4×4 matrix keypad.
+3. Provide a way to set the device activation (ON) and deactivation (OFF) times.
+4. Control the device state based on the programmed timing schedule.
+5. Implement interrupt-driven menu entry (EINT0) with robust input validation.
+6. Follow industry-standard embedded programming practices (modular design, proper naming, validation).
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **Live RTC Display** | Continuously shows `HH:MM:SS`, day of week, and `DD/MM/YYYY` |
+| **Alternating Screens** | Switches between the Clock view and the Schedule view every few seconds |
+| **Device Status Icons** | Custom CGRAM characters show whether the device is ON or OFF |
+| **Interrupt-Driven Menu** | A dedicated switch on EINT0 opens the configuration mode |
+| **Edit RTC** | Set Hour (00–23), Minute (00–59), Day (0–6), Date (01–31), Month (01–12), Year (2000–2099) |
+| **Edit Device Schedule** | Set ON HH/MM and OFF HH/MM independently |
+| **Smart Schedule Logic** | Works for same-day and overnight (across midnight) periods |
+| **Strict Validation** | Rejects out-of-range values and identical ON/OFF times |
+| **Non-blocking Timeout** | Menu sessions use Timer1 and exit automatically after a timeout |
+| **Flash Persistence (IAP)** | Optional storage of the schedule in on-chip Flash Sector 7 |
+| **Modular Drivers** | Separate functions for LCD, Keypad, RTC, Timers, Interrupt, IAP |
+
+---
+
+## 🖼️ Block Diagram
 
 <p align="center">
-
-![Platform](https://img.shields.io/badge/Platform-LPC21xx-blue)
-![Language](https://img.shields.io/badge/Language-Embedded%20C-green)
-![Peripheral](https://img.shields.io/badge/RTC-Hardware-orange)
-![IDE](https://img.shields.io/badge/IDE-Keil%20uVision-purple)
-
+    <img src="Images/Block_Diagram.png" alt="Project Block Diagram" width="900">
 </p>
 
 ---
 
-# 📖 Table of Contents
+## 🧩 Hardware Requirements
 
-- 📌 Project Overview
-- 🎯 Objectives
-- 🖼 Block Diagram
-- 🏗 System Architecture
-- ⚙ Hardware Requirements
-- 💻 Software Requirements
-- 📂 Repository Structure
-- 🔢 Keypad Menu Map
-- 🚀 Features
-- 🖥 LCD Output Gallery
-- ▶ Build Instructions
-- 📈 Future Enhancements
-- 👨‍💻 Author
-
-<br>
+| Component | Specification / Notes | Qty |
+|-----------|-----------------------|-----|
+| **LPC2148 Development Board** | ARM7 TDMI-S, 60 MHz (PLL), on-chip RTC | 1 |
+| **16×2 Character LCD** | HD44780 compatible, 8-bit interface | 1 |
+| **4×4 Matrix Keypad** | Standard membrane or tactile keypad | 1 |
+| **LED** | Represents the controlled device / load | 1 |
+| **Push Button Switch** | Connected to the EINT0 pin | 1 |
+| **USB-UART Converter / DB-9** | For ISP programming and serial debug | 1 |
+| **Power Supply** | 5 V regulated | 1 |
+| **Potentiometer** | Adjusts LCD contrast (V0 pin) | 1 |
+| **Resistor 220 Ω** | Series resistor for the LED | 1 |
+| Connecting wires / Breadboard | As required | – |
 
 ---
 
-# 📌 Project Overview
+## 💻 Software Requirements
 
-This project implements a **standalone real-time clock and device scheduler** on an **LPC21xx ARM7** microcontroller.
-
-A hardware **RTC** maintains time and date, a **16×2 LCD** displays the clock, date and device status, and a **4×4 keypad** drives an on-screen configuration menu. Pressing an external button wired to **EINT0** opens the menu, where the user can set the time/date and configure an **ON/OFF schedule** for an external device driven on `P1.30`.
-
-The configured schedule is saved to **internal Flash via IAP**, so it survives a power cycle and is automatically restored and re-applied on every startup.
-
-<br>
-
----
-
-# 🎯 Objectives
-
-- Real-time clock and date keeping
-- Keypad-driven configuration menu
-- Time/date editing
-- Device ON/OFF schedule editing
-- External-interrupt based menu entry
-- Non-blocking menu/input timeout handling
-- Persistent schedule storage in internal Flash
-- Automatic schedule restore after reset/power loss
-
-<br>
+| Tool / Library | Purpose |
+|----------------|---------|
+| **Keil µVision** (or ARM GCC) | Compile, link, and debug |
+| **Flash Magic** | ISP programming of the LPC2148 |
+| **lpc21xx.h** | Peripheral register definitions |
+| **Embedded C** | Application language |
 
 ---
 
-# 🖼 Block Diagram
+## 📌 Pin Mapping
+
+| Function | LPC2148 Pin | Direction | Notes |
+|----------|-------------|-----------|-------|
+| LCD Data Bus (D0–D7) | P0.8 – P0.15 | Output | 8-bit parallel interface |
+| LCD RS | P0.17 | Output | Register Select |
+| LCD EN | P0.18 | Output | Enable strobe |
+| Keypad Rows (R0–R3) | P1.16 – P1.19 | Output | Driven one by one |
+| Keypad Columns (C0–C3) | P1.20 – P1.23 | Input | Read for key detection |
+| Device / LED | P1.30 | Output | HIGH = ON, LOW = OFF |
+| Configuration Switch | P0.16 (EINT0) | Input | Edge-triggered external interrupt |
+
+---
+
+## 🔌 Circuit Connections
+
+Connect each part one by one. Tick each box as you finish.
+
+### ✅ 1. 16×2 LCD (HD44780)
 
 <p align="center">
-    <img src="rtc-scheduler-block-diagram.png" alt="RTC Scheduler Block Diagram" width="900">
+    <img src="Images/Circuit_LCD.png" alt="LCD Wiring Diagram" width="700">
 </p>
 
-<br>
+| LPC2148 | 16×2 LCD (HD44780) |
+|---------|---------------------|
+| P0.8 – P0.15 | D0 – D7 |
+| P0.17 | RS |
+| P0.18 | EN |
+| GND | R/W (tied to GND = write-only) |
+| VCC | VCC (+5 V) |
+| GND | GND |
+| POT (wiper) | V0 (contrast) |
+
+### ✅ 2. 4×4 Matrix Keypad
+
+<p align="center">
+    <img src="Images/Circuit_Keypad.png" alt="Keypad Wiring Diagram" width="700">
+</p>
+
+| LPC2148 | 4×4 Keypad |
+|---------|------------|
+| P1.16 – P1.19 | Row 0 – Row 3 |
+| P1.20 – P1.23 | Col 0 – Col 3 |
+
+### ✅ 3. Device (LED)
+
+<p align="center">
+    <img src="Images/Circuit_LED.png" alt="LED Wiring Diagram" width="500">
+</p>
+
+| LPC2148 | Device (LED) |
+|---------|---------------|
+| P1.30 → [220 Ω] | Anode (+) of LED |
+| GND | Cathode (−) of LED |
+
+P1.30 **HIGH** → LED **ON** (device active). P1.30 **LOW** → LED **OFF**.
+
+### ✅ 4. Configuration Switch (EINT0)
+
+<p align="center">
+    <img src="Images/Circuit_Switch.png" alt="Configuration Switch Wiring Diagram" width="500">
+</p>
+
+| LPC2148 | Push Button |
+|---------|-------------|
+| P0.16 (EINT0) | One terminal of switch |
+| GND | Other terminal of switch |
+
+An internal pull-up is normally used. Pressing the switch creates a **falling-edge interrupt** on EINT0, which sets the menu-entry flag.
 
 ---
 
-# ⭐ Overnight Schedule Handling
+## 🏁 Getting Started
 
-One of the key pieces of logic in this project is **midnight-crossing schedule comparison**.
+Follow these steps in order. It takes about 20 minutes.
 
-Rather than only supporting a same-day ON→OFF window, `Display()` detects whether the configured OFF time is earlier than the ON time and, if so, treats the schedule as spanning midnight.
+### Step 1 — Get the files
 
-- **Normal range** (`ON time < OFF time`) → device is ON while `ON time ≤ current time < OFF time`
-- **Overnight range** (`ON time > OFF time`) → device is ON while `current time ≥ ON time` **or** `current time < OFF time`
+```bash
+git clone https://github.com/<your-username>/Menu-Driven-RTC-Scheduled-Device-Control.git
+cd Menu-Driven-RTC-Scheduled-Device-Control
+```
 
-This means a schedule like `ON 22:00 → OFF 06:00` correctly keeps the device active across midnight without any special-casing by the user.
+(No Git? Click **Code → Download ZIP** on GitHub and extract it.)
+
+### Step 2 — Collect the hardware
+
+Check the [Hardware Requirements](#-hardware-requirements) table. You need the board, LCD, keypad, LED, push button, USB-UART cable, and a 5 V supply.
+
+### Step 3 — Wire the circuit
+
+Connect everything as shown in [Circuit Connections](#-circuit-connections). Double-check the LCD data pins (D0–D7 → P0.8–P0.15) and the keypad rows and columns.
+
+### Step 4 — Install the software
+
+1. Install **Keil µVision** (with the ARM7 / LPC2148 support).
+2. Install **Flash Magic**.
+
+### Step 5 — Create the Keil project
+
+1. **Project → New µVision Project**, and choose a folder.
+2. Select the device **NXP → LPC2148**.
+3. If Keil asks to copy the startup file to the project, click **Yes**.
+4. Add `Menu-Driven-RTC-Scheduled-Device-Control.c` to the **Source Group**.
+5. Open **Options for Target (Alt+F7)**:
+   - **Target** tab → **Xtal (MHz): 12.0**
+   - **Output** tab → tick **Create HEX File**
+   - Use MicroLIB (optional)
+
+### Step 6 — Build the project
+
+Press **F7** (Build). When the build shows **0 Error(s)**, a `.hex` file is created.
+
+### Step 7 — Put the board in ISP mode
+
+1. Connect the board to the PC using USB-UART or DB-9.
+2. Hold the **ISP** button and press **Reset** (usually).
+3. Release both buttons. The chip now waits for programming.
+
+### Step 8 — Flash the HEX file
+
+Open **Flash Magic** and set:
+
+| Setting | Value |
+|---------|-------|
+| Device | LPC2148 |
+| COM Port | The port of your USB-UART converter |
+| Baud Rate | 9600 or higher |
+| Oscillator (MHz) | 12 |
+| Hex File | Browse and select the generated `.hex` |
+
+Click **Start**. When it finishes, **reset the board**.
+
+### Step 9 — First run: see it work
+
+Try this quick test to check that everything is fine.
+
+| # | What to do | What you should see |
+|---|------------|---------------------|
+| 1 | Power ON | Clock screen with time, day, date |
+| 2 | Press the **EINT0 switch** | Main menu appears |
+| 3 | Press `1` (EDIT-TIME), then `1` (SET HH) | Board waits for the hour |
+| 4 | Type `1` `0`, then press `=` | Hour is saved as 10 |
+| 5 | Set the minutes the same way (`2`) | Clock shows your new time |
+| 6 | Go back, choose `2` (E_dev_T_she) | Schedule sub-menu |
+| 7 | Set **ON** to 1 minute after now, **OFF** to 2 minutes after now | Values accepted |
+| 8 | Exit the menus (choose EXIT) | Normal clock screen |
+| 9 | Wait 1 minute | **LED turns ON** ✅ |
+| 10 | Wait 1 more minute | **LED turns OFF** ✅ |
+
+🎉 If steps 9 and 10 work, your project is running correctly.
 
 ---
 
-### RTC / Schedule Comparison Workflow ⚠️
+## 🏗️ Firmware Architecture
 
-```text
-        🚀 Display() tick
-             │
-             ▼
-     🕐 Read current RTC time
-             │
-             ▼
-   🔍 Compare vs ON / OFF schedule
-             │
-      ┌──────┴───────┐
-      │               │
-      ▼               ▼
- ON < OFF          ON > OFF
-(Normal range)   (Overnight range)
-      │               │
-      ▼               ▼
- time in [ON,OFF) ?  time≥ON OR time<OFF ?
-      │               │
-      └──────┬────────┘
-             ▼
-     📟 Drive P1.30 output
-             │
-             ▼
-     🔁 Repeat every tick
+The code has three layers. The application uses the drivers. The drivers talk to the hardware.
+
+```mermaid
+flowchart TB
+    subgraph APP["🟦 Application Layer"]
+        A1["Display()<br/>time · date · schedule screens"]
+        A2["Flage_call()<br/>menu system"]
+        A3["Schedule compare<br/>and LED control"]
+    end
+
+    subgraph DRV["🟩 Driver Layer"]
+        D1["LCD driver<br/>LCD_INIT · LCD_CMD · LCD_DETA · LCD_STR"]
+        D2["Keypad driver<br/>key_scan"]
+        D3["RTC driver<br/>rtc_init · TIME · DATE"]
+        D4["Timer and delay<br/>delay_init · delay_ms"]
+        D5["Interrupt<br/>INT0_CONF · INT_BUTTEN"]
+        D6["IAP flash - optional<br/>Upload_shed · Update_Shed"]
+    end
+
+    subgraph HW["🟧 LPC2148 Hardware"]
+        H1["GPIO ports P0 and P1"]
+        H2["On-chip RTC"]
+        H3["Timer0 and Timer1"]
+        H4["VIC and EINT0"]
+        H5["Flash Sector 7"]
+    end
+
+    A1 --> D1
+    A1 --> D3
+    A1 --> A3
+    A2 --> D1
+    A2 --> D2
+    A2 --> D3
+    A2 --> D4
+    A3 --> H1
+    D1 --> H1
+    D2 --> H1
+    D3 --> H2
+    D4 --> H3
+    D5 --> H4
+    D6 --> H5
+    D5 -.->|"sets flage"| A2
 ```
 
 ---
 
-### Advantages
+## 🔄 Project Workflow
 
-- Correct behavior for both daytime and overnight schedules
-- No manual "next day" handling required from the user
-- Continuous, non-blocking evaluation inside the main display loop
+### 1. System initialization — `INIT()`
 
-<br>
+Runs once when power is applied.
 
----
-
-# 🏗 System Architecture
-
-| Module | Function |
-|--------|----------|
-| ⚙️ LPC21xx MCU | Main controller |
-| 🕐 Hardware RTC | Maintains time/date |
-| 🖥 16×2 LCD | Displays clock, date, schedules and menus |
-| 🔢 4×4 Keypad | Menu navigation and numeric input |
-| 🔔 EINT0 | Opens the configuration menu via external interrupt |
-| ⏱ Timer0 | Millisecond delay generation |
-| ⏱ Timer1 | Menu/input timeout handling |
-| 💾 Internal Flash (IAP) | Stores the ON/OFF schedule |
-| 🔌 P1.30 | Controlled device output |
-
-<br>
-
----
-
-# ⚙ Hardware Requirements
-
-| Hardware | Quantity | Purpose |
-|----------|---------:|---------|
-| LPC21xx MCU | 1 | Controller |
-| 16×2 Character LCD | 1 | Time / date / menu display |
-| 4×4 Matrix Keypad | 1 | Menu navigation and numeric input |
-| Push Button | 1 | EINT0 menu-entry trigger |
-| Relay / Device Driver | 1 | Switches the scheduled load via P1.30 |
-| Crystal Oscillator (12 MHz) | 1 | System clock source |
-
-<br>
-
----
-
-# 💻 Software Requirements
-
-| Software | Purpose |
-|----------|---------|
-| Keil uVision | Development |
-| Embedded C | Programming |
-| Flash Magic | Programming LPC21xx over ISP |
-| Proteus | Simulation |
-| Git | Version Control |
-
-<br>
-
----
-
-# 📂 Repository Structure
-
-```text
-MENU-DRIVEN-RTC-CONFIGURATION
-│
-├── src
-│   └── MENU-DRIVEN RTC CONFIGURATION.c
-│
-├── images
-│   └── rtc-scheduler-block-diagram.png
-│
-├── docs
-│   └── project-notes.md
-│
-├── README.md
-└── LICENSE
+```mermaid
+flowchart TD
+    P(["⚡ Power ON / Reset"]) --> I1["IO_DIR<br/>Set GPIO directions for LCD, keypad, LED"]
+    I1 --> I2["delay_init<br/>Start hardware timers"]
+    I2 --> I3["INT0_CONF<br/>Configure EINT0 and VIC"]
+    I3 --> I4["LCD_INIT<br/>8-bit, 2-line, cursor off"]
+    I4 --> I5["rtc_init<br/>Set prescalers and start the clock"]
+    I5 --> I6["CGRAM_INIT<br/>Load custom ON/OFF icons"]
+    I6 --> ML(["🔁 Enter main loop"])
 ```
 
-<br>
+### 2. Main loop
 
----
-
-# 🔢 Keypad Menu Map
-
-**Main menu**
-
-```text
-1. EDIT-TIME
-2. E_dev_T_she
-3. EXIT
+```c
+while(1) {
+    Display();          // Update time, date, schedule view and control LED
+    if(flage)
+        Flage_call();   // Handle menu if the interrupt flag is set
+}
 ```
 
-**Time / Date menu**
-
-```text
-1. SET HH   00-23
-2. SET MM   00-59
-3. SET DAY  0-6
-4. SET DOM  01-31
-5. SET MON  01-12
-6. SET YEAR
-7. EXIT
+```mermaid
+flowchart TD
+    S(["▶ Main loop"]) --> A["Display()<br/>Read RTC · Update LCD · Drive LED"]
+    A --> B{"flage == 1 ?"}
+    B -- "No" --> A
+    B -- "Yes" --> C["Flage_call()<br/>Run the configuration menu"]
+    C -- "Exit or timeout" --> A
 ```
 
-**Device schedule menu**
+### 3. Display engine — `Display()`
 
-```text
-1. ON HH  00-23
-2. ON MM  00-59
-3. OF HH  00-23
-4. OF MM  00-59
-5. EXIT
+- Reads the RTC registers (`HOUR`, `MIN`, `SEC`, `DOW`, `DOM`, `MONTH`, `YEAR`)
+- Formats them into display strings
+- Alternates the LCD content based on the seconds value
+- Keeps comparing the current time with the schedule and drives the LED
+
+```mermaid
+flowchart LR
+    R["Read RTC seconds"] --> Q{"SEC % 10 ≤ 5 ?"}
+    Q -- "Yes (seconds 0-5)" --> V1["Screen 1<br/>Time + Day<br/>Date + Device icon"]
+    Q -- "No (seconds 6-9)" --> V2["Screen 2<br/>ON schedule<br/>OFF schedule"]
 ```
 
-Every numeric entry is checked against its stated min/max range before being accepted.
+### 4. Configuration entry (interrupt)
 
-<br>
+The interrupt routine is very short. It only sets a flag. The main loop does the real work.
 
----
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant SW as Config Switch
+    participant ISR as INT_BUTTEN ISR
+    participant ML as Main Loop
+    participant MN as Flage_call Menu
 
-# 🧩 Important Source Functions
-
-| Function | Purpose |
-|----------|---------|
-| `INIT()` | Initializes GPIO, timers, EINT0, LCD, RTC, CGRAM |
-| `rtc_init()` | Configures and starts the RTC |
-| `LCD_INIT()` | Initializes the LCD (8-bit, 2-line mode) |
-| `key_scan()` | Reads keypad input |
-| `INT0_CONF()` | Configures EINT0 |
-| `INT_BUTTEN()` | EINT0 interrupt service routine |
-| `Flage_call()` | Opens the main configuration menu |
-| `Edit_Time()` | Edits time/date fields |
-| `Edit_Sehd()` | Edits ON/OFF schedule fields |
-| `Display()` | Refreshes LCD and drives schedule-based output control |
-| `Upload_shed()` | Saves the schedule to Flash (IAP) |
-| `Update_Shed()` | Loads the schedule from Flash on startup |
-
-<br>
+    U->>SW: Press button
+    SW->>ISR: Falling edge on EINT0 (P0.16)
+    ISR->>ISR: flage = 1
+    ISR-->>ML: Return from interrupt
+    ML->>ML: Sees flage = 1
+    ML->>MN: Call Flage_call()
+    U->>MN: Keypad input
+    MN-->>ML: Exit or Timer1 timeout
+```
 
 ---
 
-# 🚀 Features
+## 🖥️ What You See on the LCD
 
-- ✅ LPC21xx embedded C firmware (ARM7)
-- ✅ Hardware RTC with time/date keeping
-- ✅ 16×2 LCD user interface
-- ✅ 4×4 keypad menu navigation
-- ✅ External-interrupt-based menu entry (EINT0) ⭐
-- ✅ Time and date configuration
-- ✅ ON/OFF device scheduling
-- ✅ Overnight (midnight-crossing) schedule handling
-- ✅ Timer-based menu/input timeout
-- ✅ Internal Flash (IAP) schedule storage
-- ✅ Automatic schedule restore after reset/power loss
-- ✅ Day-of-week display
-- ✅ Range-checked numeric input
+**Screen 1 — Clock view** (seconds 0–5 of every 10 seconds)
 
-<br>
+```
+┌────────────────┐
+│12:45:30 THU    │   Line 1: HH:MM:SS + 3-letter day
+│24/09/2026    ● │   Line 2: DD/MM/YYYY + device status icon
+└────────────────┘
+```
+
+**Screen 2 — Schedule view** (seconds 6–9)
+
+```
+┌────────────────┐
+│ON:-09:00:00    │   Device turns ON at this time
+│OF:-17:00:00    │   Device turns OFF at this time
+└────────────────┘
+```
+
+**Screen 3 — Main menu** (after pressing the EINT0 switch)
+
+```
+┌────────────────┐
+│1.EDIT-TIME    ▲│
+│2.E_dev_T_she  ▼│
+└────────────────┘
+```
+
+> The device icon is a custom character stored in CGRAM. It changes to show whether the device is ON or OFF. The times above are only examples.
 
 ---
 
-# 🖥 LCD Output Gallery
+## 📸 LCD Output Gallery
 
-> 📸 Add photos or Proteus screenshots of your own LCD output below — replace the placeholder image paths with files under `images/`.
+> The following screenshots demonstrate the actual LCD output at each stage — clock display, schedule view, menu navigation, and device control. Replace the placeholder image paths below with your own photos in `Images/` once captured.
 
 <table align="center">
 
 <tr>
-<th align="center">🕐 Clock &amp; Date Display</th>
+<th align="center">🕒 Clock View</th>
+<th align="center">📅 Schedule View</th>
+</tr>
+
+<tr>
+<td align="center">
+<img src="Images/Clock_View.png" alt="Clock View" width="420"/>
+<br><b>Time · Day · Date + Device Icon</b>
+</td>
+<td align="center">
+<img src="Images/Schedule_View.png" alt="Schedule View" width="420"/>
+<br><b>ON / OFF Schedule Display</b>
+</td>
+</tr>
+
+<tr>
 <th align="center">📋 Main Menu</th>
+<th align="center">⏰ Edit RTC Sub-Menu</th>
 </tr>
 
 <tr>
 <td align="center">
-<img src="images/lcd-clock-display.png" alt="Clock and Date Display" width="420"/>
+<img src="Images/Main_Menu.png" alt="Main Menu" width="420"/>
+<br><b>EINT0 Triggered Configuration Menu</b>
 </td>
-
 <td align="center">
-<img src="images/lcd-main-menu.png" alt="Main Menu" width="420"/>
+<img src="Images/Edit_RTC_Menu.png" alt="Edit RTC Menu" width="420"/>
+<br><b>Hour · Minute · Day · Date · Month · Year</b>
 </td>
 </tr>
 
 <tr>
-<th align="center">🛠 Time/Date Edit Menu</th>
-<th align="center">🔌 Schedule Edit Menu</th>
+<th align="center">🗓️ Edit Schedule Sub-Menu</th>
+<th align="center">✅ Value Accepted / ❌ Rejected</th>
 </tr>
 
 <tr>
 <td align="center">
-<img src="images/lcd-time-edit.png" alt="Time Edit Menu" width="420"/>
+<img src="Images/Edit_Schedule_Menu.png" alt="Edit Schedule Menu" width="420"/>
+<br><b>ON / OFF Time Configuration</b>
 </td>
-
 <td align="center">
-<img src="images/lcd-schedule-edit.png" alt="Schedule Edit Menu" width="420"/>
+<img src="Images/Input_Validation.png" alt="Input Validation" width="420"/>
+<br><b>Range Check and Confirmation</b>
 </td>
 </tr>
 
 <tr>
-<th colspan="2" align="center">⚠️ Range-Error Message</th>
+<th colspan="2" align="center">💡 Device Status</th>
 </tr>
 
 <tr>
 <td colspan="2" align="center">
-<img src="images/lcd-range-error.png" alt="Range Error" width="520"/>
-<br>
-<b>Invalid Input Warning Screen</b>
+<img src="Images/Device_ON_OFF.png" alt="Device ON and OFF" width="520"/>
+<br><b>LED ON (Scheduled) vs LED OFF — Driven by RTC Comparison</b>
 </td>
 </tr>
 
 </table>
 
-<br>
+---
+
+## 🎛️ Menu System
+
+### Menu map
+
+```mermaid
+flowchart TD
+    N["🖥️ Normal display"] -->|"Press EINT0 switch"| M["📋 MAIN MENU"]
+
+    M -->|"1"| R["EDIT RTC"]
+    M -->|"2"| S["EDIT DEVICE SCHEDULE"]
+    M -->|"3"| X["EXIT"]
+
+    R --> R1["1 · Hour (00-23)"]
+    R --> R2["2 · Minute (00-59)"]
+    R --> R3["3 · Day of week (0-6)"]
+    R --> R4["4 · Date (01-31)"]
+    R --> R5["5 · Month (01-12)"]
+    R --> R6["6 · Year (2000-2099)"]
+    R --> R7["7 · Exit"]
+
+    S --> S1["1 · ON Hour (00-23)"]
+    S --> S2["2 · ON Minute (00-59)"]
+    S --> S3["3 · OFF Hour (00-23)"]
+    S --> S4["4 · OFF Minute (00-59)"]
+    S --> S5["5 · Exit"]
+
+    X --> N
+    R7 --> M
+    S5 --> M
+```
+
+### Main menu options
+
+| Option | Function | Description |
+|--------|----------|-------------|
+| 1 | Edit RTC | Change system time and date |
+| 2 | Edit Device ON/OFF Times | Set the daily schedule |
+| 3 | Exit | Return to normal operation |
+
+### Edit RTC sub-menu
+
+| Option | Field | Valid Range |
+|--------|-------|-------------|
+| 1 | Hour (HH) | 00 – 23 |
+| 2 | Minute (MM) | 00 – 59 |
+| 3 | Day of Week | 0 – 6 (Sun – Sat) |
+| 4 | Date (DOM) | 01 – 31 |
+| 5 | Month | 01 – 12 |
+| 6 | Year | 2000 – 2099 |
+| 7 | Exit | – |
+
+### Edit Schedule sub-menu
+
+| Option | Field | Valid Range |
+|--------|-------|-------------|
+| 1 | ON Hour | 00 – 23 |
+| 2 | ON Minute | 00 – 59 |
+| 3 | OFF Hour | 00 – 23 |
+| 4 | OFF Minute | 00 – 59 |
+| 5 | Exit | – |
 
 ---
 
-# 🔄 Main Program Flow
+## ⌨️ Keypad Guide
 
-```text
-        🚀 START
-             │
-             ▼
-     ⚙️ INIT()  (GPIO / Timers / EINT0 / LCD / RTC / CGRAM)
-             │
-             ▼
-     🗓 DATE()  (update display)
-             │
-             ▼
-     💾 Update_Shed()  (load Flash data)
-             │
-             ▼
-     🖥 Display()  (RTC + LCD + schedule control)  ◄──────────┐
-             │                                                │
-             ▼                                                │
-       flage == 1 ? ──── No ─────────────────────────────────┘
-             │
-            Yes
-             ▼
-     🔔 Flage_call()  (Configuration Menu)
-             │
-             ▼
-      🔁 Return to loop
+### Key layout (as defined in the code)
+
+|  | Col 0 (P1.20) | Col 1 (P1.21) | Col 2 (P1.22) | Col 3 (P1.23) |
+|---|:---:|:---:|:---:|:---:|
+| **Row 0** (P1.16) | `7` | `8` | `9` | `%` |
+| **Row 1** (P1.17) | `4` | `5` | `6` | `*` |
+| **Row 2** (P1.18) | `1` | `2` | `3` | `-` |
+| **Row 3** (P1.19) | `c` | `0` | `=` | `+` |
+
+### What each key does
+
+| Key | In menus | While typing a number |
+|-----|----------|-----------------------|
+| `0` – `9` | Select the menu option with that number | Enter a digit (shown on the LCD) |
+| `+` | Scroll down | **Confirm** the value |
+| `-` | Scroll up | – |
+| `=` | – | **Confirm** the value |
+| `c` | Cancel / exit | **Cancel** and keep the old value |
+
+### Configuration switch (EINT0)
+
+| Action | Result |
+|--------|--------|
+| Press the switch | EINT0 interrupt → `flage = 1` → main menu opens |
+
+### Quick reference
+
+| Action | Keys / Method | Result |
+|--------|---------------|--------|
+| View current time and date | Automatic | Default screen |
+| View ON / OFF schedule | Automatic (alternates) | Schedule screen |
+| Enter configuration menu | Press EINT0 switch | Menu appears |
+| Scroll menu up / down | `-` / `+` | Changes displayed options |
+| Select a menu item | `1`, `2` or `3` | Opens sub-menu or exits |
+| Enter a numeric value | `0` – `9` | Value appears on LCD |
+| Confirm an entry | `=` or `+` | Value accepted if valid |
+| Cancel an entry | `c` | Value discarded |
+| Exit any menu | Select EXIT or wait for timeout | Back to normal mode |
+
+---
+
+## ⏱️ Schedule Logic
+
+The device is controlled by these rules:
+
+1. **ON time is inclusive. OFF time is exclusive.**
+   Example: ON = 09:00, OFF = 17:00 → the device is ON from 09:00:00 until 16:59:59.
+2. **Same-day schedule** (ON ≤ OFF): the device is ON when `current ≥ ON` **AND** `current < OFF`.
+3. **Overnight schedule** (ON > OFF): the device is ON when `current ≥ ON` **OR** `current < OFF`.
+   Example: ON = 22:00, OFF = 06:00 → runs from 22:00 until 05:59 the next morning.
+4. **Identical ON and OFF times are rejected**, because the operating period would be unclear.
+5. The schedule **repeats every day**.
+
+### Decision flowchart
+
+```mermaid
+flowchart TD
+    A["Read current time"] --> B{"ON ≤ OFF ?"}
+    B -- "Yes: same-day" --> C{"current ≥ ON<br/>AND<br/>current < OFF"}
+    B -- "No: overnight" --> D{"current ≥ ON<br/>OR<br/>current < OFF"}
+    C -- "True" --> LON["💡 LED ON"]
+    C -- "False" --> LOFF["⚫ LED OFF"]
+    D -- "True" --> LON
+    D -- "False" --> LOFF
+```
+
+### 24-hour timeline examples
+
+`█` = device ON, `░` = device OFF (one character = one hour)
+
+```
+Hour             0  3  6  9  12 15 18 21
+                 ↓  ↓  ↓  ↓  ↓  ↓  ↓  ↓
+Same-day         ░░░░░░░░░████████░░░░░░░     ON = 09:00   OFF = 17:00
+Overnight        ██████░░░░░░░░░░░░░░░░██     ON = 22:00   OFF = 06:00
 ```
 
 ---
 
-# ▶ Build Instructions
+## ✅ Input Validation
 
-1. Open the project in Keil uVision.
-2. Select the exact LPC21xx part number used on your board and add the matching device header/startup files.
-3. Build the project.
-4. Flash the target using Flash Magic over UART/ISP.
-5. Wire up the LCD, keypad, EINT0 button, and the device output (`P1.30`) per the hardware requirements.
-6. Power ON, set the time/date and schedule via the keypad menu, and observe LCD and schedule output.
+| Field | Validation Performed |
+|-------|----------------------|
+| Hour | 0 – 23 |
+| Minute | 0 – 59 |
+| Day of Week | 0 – 6 |
+| Date (DOM) | 1 – 31 (basic check; month length and leap year can be added later) |
+| Month | 1 – 12 |
+| Year | 2000 – 2099 |
+| ON / OFF times | Range check + rejected if ON equals OFF |
+| Numeric entry | Only digits accepted; cancel with `c`; confirm with `=` or `+` |
 
-<br>
+Invalid entries are rejected and the user must enter a valid value again. **Nothing is changed in the RTC or the schedule until a valid value is confirmed.**
+
+```mermaid
+flowchart TD
+    A["Choose a field from the menu"] --> B["Type digits 0-9"]
+    B --> C{"Key pressed?"}
+    C -- "digit" --> B
+    C -- "c" --> E["Cancel<br/>keep old value"]
+    C -- "= or +" --> D{"Value valid?"}
+    D -- "Yes" --> F["✅ Save to RTC or schedule"]
+    D -- "No" --> G["❌ Reject<br/>ask again"]
+    G --> B
+```
 
 ---
 
-# 📈 Future Enhancements
+## 🧪 Testing Checklist
 
-- Multiple independent ON/OFF schedules (weekday-based)
-- Battery-backed RTC failure detection / re-sync
-- UART/Bluetooth remote configuration
-- Manual override button independent of the schedule
-- RTC alarm interrupt instead of polled comparison
+Use this table to check that the project works. Tick each row after testing.
 
-<br>
+| # | Test | Expected Result | Pass |
+|---|------|-----------------|:----:|
+| 1 | Power ON the board | Clock screen appears on LCD | ☐ |
+| 2 | Wait 10 seconds | Screen alternates between Clock and Schedule views | ☐ |
+| 3 | Press the EINT0 switch | Main menu opens | ☐ |
+| 4 | Set Hour = `24` | **Rejected**, old value kept | ☐ |
+| 5 | Set Minute = `60` | **Rejected**, old value kept | ☐ |
+| 6 | Set Month = `13` | **Rejected**, old value kept | ☐ |
+| 7 | Set Year = `1999` | **Rejected**, old value kept | ☐ |
+| 8 | Set Hour = `10`, confirm with `=` | Clock shows the new hour | ☐ |
+| 9 | Start typing a value, then press `c` | Entry cancelled, old value kept | ☐ |
+| 10 | Set ON = 09:00 and OFF = 09:00 | **Rejected** (identical times) | ☐ |
+| 11 | ON = 09:00, OFF = 17:00, time = 12:00 | LED **ON** | ☐ |
+| 12 | ON = 09:00, OFF = 17:00, time = 18:00 | LED **OFF** | ☐ |
+| 13 | ON = 22:00, OFF = 06:00, time = 23:30 | LED **ON** | ☐ |
+| 14 | ON = 22:00, OFF = 06:00, time = 03:00 | LED **ON** | ☐ |
+| 15 | ON = 22:00, OFF = 06:00, time = 12:00 | LED **OFF** | ☐ |
+| 16 | Open the menu and do nothing | Menu closes by itself after the timeout | ☐ |
 
 ---
 
-# 👨‍💻 Author
+## 🛠️ Troubleshooting
 
-**Menu-Driven RTC Configuration & Device Scheduler**
+| Problem | Possible Cause | What to Do |
+|---------|----------------|------------|
+| LCD is blank or shows only dark boxes | Contrast not set | Turn the potentiometer on the **V0** pin; check VCC and GND |
+| LCD shows wrong / garbage characters | Data wires in wrong order | Check D0–D7 → P0.8–P0.15, and RS (P0.17) / EN (P0.18) |
+| Flash Magic cannot connect | Board is not in ISP mode, or wrong settings | Hold ISP and press Reset; check COM port, baud rate, and oscillator = 12 MHz |
+| Keypad keys give wrong digits or nothing | Rows / columns swapped or loose | Rows → P1.16–P1.19, Columns → P1.20–P1.23; compare with the [key layout](#-keypad-guide) |
+| Menu does not open | Switch wiring problem | Switch between **P0.16** and **GND**; press firmly |
+| LED never turns ON | Schedule not set, or LED wiring | Look at the schedule screen; check the 220 Ω resistor, LED direction, and P1.30 |
+| Time or date is wrong after power off | Clock must be set again | Set it from the menu (backup options are in [Future Enhancements](#-future-enhancements)) |
+| Menu closes too quickly | Timeout is short | Adjust the `delay_ms1()` calls in the code |
 
-Embedded Systems | Embedded C | ARM7 | RTC | LCD | Keypad | Flash IAP
+---
+
+## 📁 Project Structure
+
+```
+Menu-Driven-RTC-Scheduled-Device-Control/
+│
+├── Menu-Driven-RTC-Scheduled-Device-Control.c              # Complete single-file application source
+├── README.md                   # This documentation
+│
+├── Images/
+│   ├── Block_Diagram.png
+│   ├── Circuit_LCD.png
+│   ├── Circuit_Keypad.png
+│   ├── Circuit_LED.png
+│   ├── Circuit_Switch.png
+│   ├── Clock_View.png
+│   ├── Schedule_View.png
+│   ├── Main_Menu.png
+│   ├── Edit_RTC_Menu.png
+│   ├── Edit_Schedule_Menu.png
+│   ├── Input_Validation.png
+│   └── Device_ON_OFF.png
+│
+└── docs/
+    └── Menu-Driven RTC Configuration and Scheduled Device Control System.pdf
+```
+
+> The provided implementation is a **single-file** design that contains all drivers and application logic. For production use, split it into modules (`lcd.c/h`, `keypad.c/h`, `rtc.c/h`, and so on).
+
+---
+
+## 🔍 Source Code Overview
+
+### Major modules inside `Menu-Driven-RTC-Scheduled-Device-Control.c`
+
+| Module / Function Group | Purpose |
+|-------------------------|---------|
+| **Clock and Constants** | FCLK, CCLK, PCLK, RTC prescalers, pin definitions |
+| **LCD Driver** | `LCD_INIT`, `LCD_CMD`, `LCD_DETA`, `LCD_STR`, `CGRAM_INIT` |
+| **RTC Driver** | `rtc_init`, `TIME`, `DAY`, `DATE`, `Update_Time`, `Update_Date` |
+| **Keypad Driver** | `key_scan`, `col_scan`, `row_scan` |
+| **Interrupt** | `INT0_CONF`, `INT_BUTTEN` (ISR) |
+| **Timers / Delay** | `delay_init`, `delay_ms`, `delay_ms1` |
+| **Display and Control Logic** | `Display`, schedule comparison, LED control |
+| **Menu System** | `Flage_call`, `Edit_Time`, `Edit_Sehd`, `Show_*_Menu`, `Get_Num_Input` |
+| **IAP / Flash** | `Upload_shed`, `Update_Shed` (Sector 7) |
+
+### Key global variables
+
+| Variable | Use |
+|----------|-----|
+| `Time[]`, `Date[]` | Display buffers |
+| `RTC_SHED_START[]`, `RTC_SHED_END[]` | Schedule strings |
+| `flage` | Interrupt flag for menu entry |
+| `KPM[4][4]` | Keypad character map |
+| `MENU`, `TIME_MENU`, `SHED_MENU` | Menu text arrays |
+
+---
+
+## ⚙️ Technical Specifications
+
+| Parameter | Value |
+|-----------|-------|
+| Microcontroller | NXP LPC2148 (ARM7 TDMI-S) |
+| System Clock (CCLK) | 60 MHz (PLL from 12 MHz crystal) |
+| Peripheral Clock (PCLK) | 15 MHz |
+| RTC Clock Source | 32.768 kHz (prescaled) |
+| LCD Interface | 8-bit parallel (HD44780) |
+| Keypad | 4×4 matrix scanning |
+| Interrupt | EINT0, edge-triggered, VIC vectored |
+| Timers Used | Timer0 (blocking delay), Timer1 (menu timeout) |
+| Flash Sector for Schedule | Sector 7 (0x00007000), optional IAP |
+| Programming Interface | ISP via UART (Flash Magic) |
+
+---
+
+## ⚠️ Known Limitations
+
+- Date-of-Month validation is basic (1–31). Full month-length and leap-year checking can be added.
+- The schedule is mainly held in RAM. Flash write through IAP is implemented but is optional and not active in the main flow.
+- The menu timeout is controlled by `delay_ms1()` calls (adjustable).
+- The code uses a single-file design for simplicity. Splitting into several source and header files is recommended for larger projects.
+
+---
+
+## 🚀 Future Enhancements
+
+- Full calendar validation (days per month + leap years)
+- Multiple daily schedules or weekly schedules
+- Password protection for the configuration menu
+- UART logging of events
+- Soft RTC backup or battery-backed external RTC (DS1307)
+- EEPROM / Flash storage of multiple profiles
+- Buzzer or extra status LEDs
+- Modular multi-file project structure with Makefiles
+
+---
+## Author
+
+**Jithendra Sadineni**
+
+</div>
