@@ -99,7 +99,7 @@ The system:
 ## 🖼️ Block Diagram
 
 <p align="center">
-    <img src="Images/Block_Diagram.png" alt="Project Block Diagram" width="900">
+    <img src="images/Block_Diagram.png" alt="Project Block Diagram" width="900">
 </p>
 
 ---
@@ -153,7 +153,7 @@ Connect each part one by one. Tick each box as you finish.
 ### ✅ 1. 16×2 LCD (HD44780)
 
 <p align="center">
-    <img src="Images/Circuit_LCD.png" alt="LCD Wiring Diagram" width="700">
+    <img src="images/Circuit_LCD.png" alt="LCD Wiring Diagram" width="700">
 </p>
 
 | LPC2148 | 16×2 LCD (HD44780) |
@@ -169,7 +169,7 @@ Connect each part one by one. Tick each box as you finish.
 ### ✅ 2. 4×4 Matrix Keypad
 
 <p align="center">
-    <img src="Images/Circuit_Keypad.png" alt="Keypad Wiring Diagram" width="700">
+    <img src="images/Circuit_Keypad.png" alt="Keypad Wiring Diagram" width="700">
 </p>
 
 | LPC2148 | 4×4 Keypad |
@@ -180,7 +180,7 @@ Connect each part one by one. Tick each box as you finish.
 ### ✅ 3. Device (LED)
 
 <p align="center">
-    <img src="Images/Circuit_LED.png" alt="LED Wiring Diagram" width="500">
+    <img src="images/Circuit_LED.png" alt="LED Wiring Diagram" width="500">
 </p>
 
 | LPC2148 | Device (LED) |
@@ -193,7 +193,7 @@ P1.30 **HIGH** → LED **ON** (device active). P1.30 **LOW** → LED **OFF**.
 ### ✅ 4. Configuration Switch (EINT0)
 
 <p align="center">
-    <img src="Images/Circuit_Switch.png" alt="Configuration Switch Wiring Diagram" width="500">
+    <img src="images/Circuit_Switch.png" alt="Configuration Switch Wiring Diagram" width="500">
 </p>
 
 | LPC2148 | Push Button |
@@ -444,7 +444,7 @@ sequenceDiagram
 
 ## 📸 LCD Output Gallery
 
-> The following screenshots demonstrate the actual LCD output at each stage — clock display, schedule view, menu navigation, and device control. Replace the placeholder image paths below with your own photos in `Images/` once captured.
+> The following screenshots demonstrate the actual LCD output at each stage — clock display, schedule view, menu navigation, and device control. Replace the placeholder image paths below with your own photos in `images/` once captured.
 
 <table align="center">
 
@@ -455,11 +455,11 @@ sequenceDiagram
 
 <tr>
 <td align="center">
-<img src="Images/Clock_View.png" alt="Clock View" width="420"/>
+<img src="images/Clock_View.png" alt="Clock View" width="420"/>
 <br><b>Time · Day · Date + Device Icon</b>
 </td>
 <td align="center">
-<img src="Images/Schedule_View.png" alt="Schedule View" width="420"/>
+<img src="images/Schedule_View.png" alt="Schedule View" width="420"/>
 <br><b>ON / OFF Schedule Display</b>
 </td>
 </tr>
@@ -471,11 +471,11 @@ sequenceDiagram
 
 <tr>
 <td align="center">
-<img src="Images/Main_Menu.png" alt="Main Menu" width="420"/>
+<img src="images/Main_Menu.png" alt="Main Menu" width="420"/>
 <br><b>EINT0 Triggered Configuration Menu</b>
 </td>
 <td align="center">
-<img src="Images/Edit_RTC_Menu.png" alt="Edit RTC Menu" width="420"/>
+<img src="images/Edit_RTC_Menu.png" alt="Edit RTC Menu" width="420"/>
 <br><b>Hour · Minute · Day · Date · Month · Year</b>
 </td>
 </tr>
@@ -487,11 +487,11 @@ sequenceDiagram
 
 <tr>
 <td align="center">
-<img src="Images/Edit_Schedule_Menu.png" alt="Edit Schedule Menu" width="420"/>
+<img src="images/Edit_Schedule_Menu.png" alt="Edit Schedule Menu" width="420"/>
 <br><b>ON / OFF Time Configuration</b>
 </td>
 <td align="center">
-<img src="Images/Input_Validation.png" alt="Input Validation" width="420"/>
+<img src="images/Input_Validation.png" alt="Input Validation" width="420"/>
 <br><b>Range Check and Confirmation</b>
 </td>
 </tr>
@@ -502,7 +502,7 @@ sequenceDiagram
 
 <tr>
 <td colspan="2" align="center">
-<img src="Images/Device_ON_OFF.png" alt="Device ON and OFF" width="520"/>
+<img src="images/Device_ON_OFF.png" alt="Device ON and OFF" width="520"/>
 <br><b>LED ON (Scheduled) vs LED OFF — Driven by RTC Comparison</b>
 </td>
 </tr>
